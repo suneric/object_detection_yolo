@@ -1,0 +1,7 @@
+path: ../datasets/mixed # dataset root dir
+train: images/train
+val: images/validation
+test: images/test
+
+nc: 1 # number of classes
+names: ['Electric Socket - Type B']
