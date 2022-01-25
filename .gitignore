@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 /yolov5/runs
+yolov5*
+images

@@ -1,0 +1,20 @@
+
+name: py3-tf2-gpu
+
+dependencies:
+  - python==3.8
+  - pip
+  - pytorch==1.7.1
+  - torchvision
+  - cudatoolkit=10.1
+  - pillow
+  - opencv
+  - matplotlib
+  - pip:
+    - pandas
+    - numpy
+    - awscli
+    - urllib3
+    - lxml
+    - tqdm
+    - -e .

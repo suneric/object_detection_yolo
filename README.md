@@ -68,11 +68,14 @@ python visualize_annotation.py --image [OID images] --label [OID image labels] -
 ```
 python annotation_oid2yolo.py --source [OID images] --output [Yolo format output] --class_index [index of specified class defined in dataset.yaml]
 ```
-4. trainwith yolov5
+4. train with yolov5
 ```
 python train.py --data dataset.yaml --weights yolov5s --batch 16 --img 640 --epochs 300          
 ```
-
+5. predict with yolov5
+```
+python predict.py --image [image] --yolov5 yolov5/runs/train/exp/weights/best.pt
+```
 
 ## References
 - [OIDv4 Toolkit](https://github.com/pythonlessons/OIDv4_ToolKit.git)
