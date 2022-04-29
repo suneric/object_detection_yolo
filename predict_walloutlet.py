@@ -9,19 +9,23 @@ def getArgs():
     parser.add_argument('--yolov5',type=str,default='trained/walloutlet.pt')
     return parser.parse_args()
 
-def draw_prediction(img,box,valid,confidence,label):
-    if valid:
-        H,W = img.shape[:2]
-        text_horizontal = 0
+def draw_prediction(img,boxes,label_idices,classes):
+    H,W = img.shape[:2]
+    text_horizontal = 0
+
+    for i in range(len(boxes)):
+        box = boxes[i][0:4]
+        confidence = boxes[i][4]
+        label = classes[int(label_idices[i])]
         l,t,r,b = int(box[0]),int(box[1]),int(box[2]),int(box[3])
         cv2.rectangle(img, (l,t), (r,b), (0,255,0), 2)
         cv2.putText(img, label, (l-10,t-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
-        texts = [
-            ("confidence","{:.2f}".format(confidence))
-        ]
-        for (i,(k,v)) in enumerate(texts):
-            text = "{}:{}".format(k,v)
-            cv2.putText(img, text, (10+text_horizontal*100,H-((i*20)+20)),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+        # texts = [
+        #     ("confidence","{:.2f}".format(confidence))
+        # ]
+        # for (i,(k,v)) in enumerate(texts):
+        #     text = "{}:{}".format(k,v)
+        #     cv2.putText(img, text, (10+text_horizontal*100,H-((i*20)+20)),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
     cv2.imshow('walloutlet detection',img)
     cv2.waitKey(10000)
 
@@ -42,5 +46,6 @@ if __name__ == "__main__":
     labels, cord = results.xyxy[0][:, -1].cpu().numpy(), results.xyxy[0][:, :-1].cpu().numpy()
     print(labels, cord)
 
-    draw_prediction(resized, cord[0][0:4], True, cord[0][4], "Type B")
+    classes = ["Outlet", "Type B"]
+    draw_prediction(resized, cord, labels, classes)
     cv2.destroyAllWindows()

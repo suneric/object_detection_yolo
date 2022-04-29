@@ -130,6 +130,6 @@ dmypy.json
 
 /yolov5/runs
 yolov5*
-images
+data
 *.weights
 *.pt

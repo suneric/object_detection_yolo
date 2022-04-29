@@ -46,7 +46,8 @@ def convertAnnotation(filename, img_file, label_file, class_index, img_dest, lab
             top = float(data[len(data)-3])
             right = float(data[len(data)-2])
             bottom = float(data[len(data)-1])
-            annotation.append((left,top,right,bottom))
+            idx = class_index.index(data[0])
+            annotation.append((idx,left,top,right,bottom))
 
     img = cv2.imread(img_file)
     H,W,C = img.shape
@@ -56,12 +57,13 @@ def convertAnnotation(filename, img_file, label_file, class_index, img_dest, lab
     label_output = os.path.join(label_dest,filename+'.txt')
     with open(label_output,'w') as f:
         for item in annotation:
+            # print(item)
             # resize the box to [0,1]
-            x_center = 0.5*(left+right)/W
-            y_center = 0.5*(top+bottom)/H
-            width = (right-left)/W
-            height = (bottom-top)/H
-            f.write(str(class_index)+' '+str(x_center)+' '+str(y_center)+' '+str(width)+' '+str(height))
+            x_center = 0.5*(item[1]+item[3])/W
+            y_center = 0.5*(item[2]+item[4])/H
+            width = (item[3]-item[1])/W
+            height = (item[4]-item[2])/H
+            f.write(str(item[0])+' '+str(x_center)+' '+str(y_center)+' '+str(width)+' '+str(height)+'\n')
     return
 
 def creatSubFolder(root,sub):
@@ -76,12 +78,11 @@ def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source',type=str, default='')
     parser.add_argument('--output',type=str, default='')
-    parser.add_argument('--class_index',type=int, default=0)
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = getArgs()
     dest = args.output
     source = args.source
-    class_index = args.class_index
+    class_index = ['outerBox','typeB']
     oid2yolo(source, dest, class_index)

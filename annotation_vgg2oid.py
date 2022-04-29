@@ -17,9 +17,15 @@ def get_labels(annotation_file, type='vgg'):
             for id in imgIds:
                 img = jdata["_via_img_metadata"][id]
                 filename = img["filename"]
+                record = []
+                record.append(filename)
+                boxes = []
                 box = img["regions"][0]["shape_attributes"]
                 label = img["regions"][0]["region_attributes"]["Outlet Type"]
-                labels.append((filename, label, box["x"],box["y"],box["x"]+box["width"],box["y"]+box["height"]))
+                boxes.append((label, box["x"],box["y"],box["x"]+box["width"],box["y"]+box["height"]))
+                record.append(boxes)
+
+                labels.append(record)
         elif type == 'agi': # argumented images
             jdata = json.load(f)
             for id in jdata:
@@ -41,8 +47,10 @@ one label file (.txt) for each image file, annotation like:
 """
 def vgg2oid(img_path, annotation_file, output_root, id_prefix, type):
     # import json
-    labels = get_labels(annotation_file, type)
+    labels = get_labels(annotation_file)
     print("find {} images".format(len(labels)))
+    if len(labels) == 0:
+        return
 
     # split to train 80%, validation 10%, test 10%
     random.shuffle(labels)
@@ -72,6 +80,7 @@ def vgg2oid(img_path, annotation_file, output_root, id_prefix, type):
     for item in test:
         copyImageAndLabel(img_path,item,id_prefix,test_dir)
 
+
 def copyImageAndLabel(image_path,label,id_prefix,destination):
     # make a folder for Label
     label_folder = os.path.join(destination,'Label')
@@ -86,9 +95,75 @@ def copyImageAndLabel(image_path,label,id_prefix,destination):
     # copy image
     cv2.imwrite(os.path.join(destination,img_name),origin_img)
     with open(os.path.join(label_folder,label_name),'w') as f:
-        class_name = "Outlet_"+label[1]
-        lx,ty,rx,by = label[2],label[3],label[4],label[5]
-        f.write(class_name+' '+str(lx)+' '+str(ty)+' '+str(rx)+' '+str(by))
+        for box in label[1]:
+            class_name = box[0]
+            lx,ty,rx,by = box[1],box[2],box[3],box[4]
+            f.write(class_name+' '+str(lx)+' '+str(ty)+' '+str(rx)+' '+str(by)+'\n')
+
+
+"""
+this is for process new label file containing multiple boxes
+"""
+def get_labels_2(annotation_file, img_path):
+    labels = []
+    with open(annotation_file) as f:
+        jdata = json.load(f)
+        for item in jdata:
+            # check if file is exists
+            filename = jdata[item]['filename']
+            if not os.path.exists(os.path.join(img_path, filename)):
+                print(filename, "does not exist")
+                continue
+
+            record = []
+            record.append(filename)
+            regions = jdata[item]['regions']
+            boxes = []
+            for r in regions:
+                box = r['shape_attributes']
+                label = r['region_attributes']['outlet']
+                boxes.append((label, box["x"], box["y"], box["x"]+box["width"], box["y"]+box["height"]))
+            record.append(boxes)
+            labels.append(record)
+    return labels
+
+def convertVGG2OID(img_path, annotation_file, output_root, id_prefix):
+    # import json
+    labels = get_labels_2(annotation_file,img_path)
+    print("find {} images".format(len(labels)))
+    if len(labels) == 0:
+        return
+
+    # split to train 80%, validation 10%, test 10%
+    random.shuffle(labels)
+    count1 = round(0.80*len(labels))
+    count2 = round(0.10*len(labels))
+    train = labels[0:count1]
+    validation = labels[count1:count1+count2]
+    test = labels[count1+count2:]
+    # print(len(train)+len(validation)+len(test))
+
+    # create destination folder
+    train_dir = os.path.join(output_root,'train')
+    if not os.path.isdir(train_dir):
+        os.mkdir(train_dir)
+    for item in train:
+        copyImageAndLabel(img_path,item,id_prefix,train_dir)
+
+    val_dir = os.path.join(output_root,'validation')
+    if not os.path.isdir(val_dir):
+        os.mkdir(val_dir)
+    for item in validation:
+        copyImageAndLabel(img_path,item,id_prefix,val_dir)
+
+    test_dir = os.path.join(output_root,'test')
+    if not os.path.isdir(test_dir):
+        os.mkdir(test_dir)
+    for item in test:
+        copyImageAndLabel(img_path,item,id_prefix,test_dir)
+
+
+
 
 def getArgs():
     parser = argparse.ArgumentParser()
@@ -116,4 +191,5 @@ if __name__ == '__main__':
     if not os.path.isdir(output_root):
         os.mkdir(output_root)
 
-    vgg2oid(image_path,annotations,output_root,id_prefix, type)
+    # vgg2oid(image_path,annotations,output_root,id_prefix, type)
+    convertVGG2OID(image_path,annotations,output_root,id_prefix)
