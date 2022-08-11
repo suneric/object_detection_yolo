@@ -76,6 +76,10 @@ python train.py --data dataset.yaml --weights yolov5s --batch 16 --img 640 --epo
 ```
 python predict.py --image [image] --yolov5 yolov5/runs/train/exp/weights/best.pt
 ```
+6. merge oid images and label
+```
+python merge_oid.py --source [path/train] --output [path/train] --idprefix [classname] --limit [max count]
+```
 
 ## References
 - [OIDv4 Toolkit](https://github.com/pythonlessons/OIDv4_ToolKit.git)

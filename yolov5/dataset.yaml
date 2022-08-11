@@ -3,5 +3,5 @@ train: images/train
 val: images/validation
 test: images/test
 
-nc: 2 # number of classes
-names: ['Outlet','Socket Type B']
+nc: 5 # number of classes
+names: ['Door','Door Handle','Human Body','Outlet','Socket Type B']

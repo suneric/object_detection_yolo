@@ -46,7 +46,10 @@ def convertAnnotation(filename, img_file, label_file, class_index, img_dest, lab
             top = float(data[len(data)-3])
             right = float(data[len(data)-2])
             bottom = float(data[len(data)-1])
-            idx = class_index.index(data[0])
+            classname = data[0]
+            for i in range(1,len(data)-4):
+                classname = classname+" "+data[i]
+            idx = class_index.index(classname)
             annotation.append((idx,left,top,right,bottom))
 
     img = cv2.imread(img_file)
@@ -84,5 +87,5 @@ if __name__ == '__main__':
     args = getArgs()
     dest = args.output
     source = args.source
-    class_index = ['outerBox','typeB']
+    class_index = ['Door','Door handle','Human body','outerBox','typeB']
     oid2yolo(source, dest, class_index)
