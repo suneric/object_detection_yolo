@@ -6,47 +6,56 @@ import argparse
 def show_image_and_annotation(image, label, type):
     # parser annotations in label file
     annotation = []
-    with open(label,'r') as f:
-        for line in f.read().splitlines():
-            data = line.split(' ')
-            # class name
-            class_name = data[0]
-            # for the case that there are space in the name
-            for i in range(1,len(data)-5):
-                class_name +='-'
-                class_name += data[i]
+    if os.path.exists(label):
+        with open(label,'r') as f:
+            for line in f.read().splitlines():
+                data = line.split(' ')
+                # class name
+                class_name = data[0]
+                # for the case that there are space in the name
+                for i in range(1,len(data)-5):
+                    class_name +='-'
+                    class_name += data[i]
 
-            if type == 'oid':
-                # box positions
-                left = float(data[len(data)-4])
-                top = float(data[len(data)-3])
-                right = float(data[len(data)-2])
-                bottom = float(data[len(data)-1])
-                annotation.append((class_name,left,top,right,bottom))
-            elif type == 'yolo':
-                cx = float(data[len(data)-4])
-                cy = float(data[len(data)-3])
-                width = float(data[len(data)-2])
-                height = float(data[len(data)-1])
-                annotation.append((class_name,cx,cy,width,height))
+                if type == 'oid':
+                    # box positions
+                    left = float(data[len(data)-4])
+                    top = float(data[len(data)-3])
+                    right = float(data[len(data)-2])
+                    bottom = float(data[len(data)-1])
+                    annotation.append((class_name,left,top,right,bottom))
+                elif type == 'yolo':
+                    cx = float(data[len(data)-4])
+                    cy = float(data[len(data)-3])
+                    width = float(data[len(data)-2])
+                    height = float(data[len(data)-1])
+                    annotation.append((class_name,cx,cy,width,height))
 
     # draw annotations
     fnt = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", 50)
     with Image.open(image) as img:
+        w,h = img.size
+        scale = int(w/100)
+        if h < w:
+            scale = int(h/100)
+        colors = ["#6495ED","#DE3163", "red", "#FFBF00", "#9FE2BF"]
+        classes = ['door','door handle','human body','electric wall outlet','type B socket hole']
         draw = ImageDraw.Draw(img)
         if type == 'oid':
             for (classname,left,top,right,bottom) in annotation:
-                draw.rectangle(((round(left),round(top)),(round(right),round(bottom))),outline="blue", width=3)
-                draw.text((round(left)+10,round(top)-50), classname, font=fnt, fill="blue")
+                color = colors[classes.index(classname)]
+                draw.rectangle(((round(left),round(top)),(round(right),round(bottom))),outline=color, width=scale)
+                draw.text((round(left)+10,round(top)+20), classname, font=fnt, fill=color)
         elif type == 'yolo':
             width, height = img.size
             for (classname,cx,cy,bw,bh) in annotation:
+                color = colors[int(classname)]
                 left = int((cx-0.5*bw)*width)
                 top = int((cy-0.5*bh)*height)
                 right = int((cx+0.5*bw)*width)
                 bottom = int((cy+0.5*bh)*height)
-                draw.rectangle(((round(left),round(top)),(round(right),round(bottom))),outline="blue", width=3)
-                draw.text((round(left)+10,round(top)-50), classname, font=fnt, fill="blue")
+                draw.rectangle(((round(left),round(top)),(round(right),round(bottom))),outline=color, width=scale)
+                draw.text((round(left)+10,round(top)+20), classname, font=fnt, fill=color)
     return img
 
 def find_images(image, label):
@@ -74,20 +83,32 @@ def resize_image(image, width, height):
 
 def getArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image',type=str, default='')
-    parser.add_argument('--label',type=str, default='')
-    parser.add_argument('--type',type=str, default='oid')
+    parser.add_argument('--image',type=str, default='', help="path to image")
+    parser.add_argument('--label',type=str, default='', help="path to label")
+    parser.add_argument('--type',type=str, default='oid', help="oid or yolo")
     return parser.parse_args()
 
 
 class ImageDisplay(tk.Frame):
     def __init__(self, parent, image, label, type):
         self.root = parent
+        self.root.bind('<Left>',self.left_pressed)
+        self.root.bind('<Right>',self.right_pressed)
+        self.root.bind('<Delete>',self.delete_pressed)
         self.find_images(image, label)
         self.type = type
         self.max_count = len(self.images)-1
         self.counter = 0
         self.create_canvas()
+
+    def left_pressed(self,event):
+        self.prev_image()
+
+    def right_pressed(self,event):
+        self.next_image()
+
+    def delete_pressed(self,event):
+        self.delete_image()
 
     def create_canvas(self):
         self.root.title("Image Annotation Visualizer")
@@ -119,7 +140,6 @@ class ImageDisplay(tk.Frame):
 
     def get_image(self,count):
         (img_file, label_file) = self.images[count]
-        print(count, img_file)
         img = show_image_and_annotation(img_file, label_file, self.type)
         img = resize_image(img,640,640)
         photo = ImageTk.PhotoImage(img)
