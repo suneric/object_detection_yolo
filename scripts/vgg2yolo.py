@@ -25,7 +25,7 @@ def show_image_and_annotation(image, annotation):
     # draw annotations
     fnt = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", 50)
     colors = ["#6495ED","#DE3163", "red", "#FFBF00", "#9FE2BF"]
-    classes = ['door','door handle','human body','electric wall outlet','type B socket hole']
+    classes = ['door','door handle','human body','electric wall outlet','type b socket hole']
     with Image.open(image) as img:
         w,h = img.size
         scale = int(w/100)
@@ -33,6 +33,7 @@ def show_image_and_annotation(image, annotation):
             scale = int(h/100)
         draw = ImageDraw.Draw(img)
         for (classname,left,top,right,bottom) in annotation:
+            print(classname)
             color = colors[classes.index(classname)]
             draw.rectangle(((round(left),round(top)),(round(right),round(bottom))),outline=color, width=scale)
             draw.text((round(left)+10,round(top)+20), classname, font=fnt, fill=color)
@@ -124,8 +125,6 @@ class ImageDisplay(tk.Frame):
         self.count_label = tk.Label(self.frame_cv, text=self.count_str)
         self.count_label.pack()
 
-
-
     def get_image(self,count):
         imgFile = self.images[count]
         basename = os.path.basename(imgFile)
@@ -138,17 +137,31 @@ class ImageDisplay(tk.Frame):
         photo = ImageTk.PhotoImage(img)
         return photo
 
-    def find_images_and_labels(self, imageDir, labelFile):
-        # find image
-        self.images = []
-        for file in os.listdir(imageDir):
-            if os.path.isdir(os.path.join(imageDir,file)):
-                continue
-            else:
-                imgFile = os.path.join(imageDir,file)
-                self.images.append(imgFile)
-        print("find {} images".format(len(self.images)))
+    # olatz
+    def parse_label_2(self, imageDir, labelFile):
+        self.labels = {}
+        with open(labelFile) as f:
+            jdata = json.load(f)
+            for id in jdata:
+                img = jdata[id]
+                filename = img["filename"]
+                if not os.path.exists(os.path.join(imageDir, filename)):
+                    print(filename, "does not exist")
+                    continue
+                regions = img['regions']
+                boxes = []
+                for r in regions:
+                    box = r['shape_attributes']
+                    label = 'missing'
+                    if len(r['region_attributes']) > 0:
+                        label = r['region_attributes']['class'].lower()
+                        if 'electric wall' in label:
+                            label = 'electric wall outlet'
+                    boxes.append((label,box["x"],box["y"],box["x"]+box["width"],box["y"]+box["height"]))
+                self.labels[filename] = boxes
+            print("find {} labels".format(len(self.labels)))
 
+    def parse_label(self, imageDir, labelFile):
         self.labels = {}
         with open(labelFile) as f:
             jdata = json.load(f)
@@ -165,10 +178,25 @@ class ImageDisplay(tk.Frame):
                     box = r['shape_attributes']
                     label = 'missing'
                     if len(r['region_attributes']) > 0:
-                        label = r['region_attributes']['Class']
+                        label = r['region_attributes']['Class'].lower()
                     boxes.append((label,box["x"],box["y"],box["x"]+box["width"],box["y"]+box["height"]))
                 self.labels[filename] = boxes
             print("find {} labels".format(len(self.labels)))
+
+
+    def find_images_and_labels(self, imageDir, labelFile):
+        # find image
+        self.images = []
+        for file in os.listdir(imageDir):
+            if os.path.isdir(os.path.join(imageDir,file)):
+                continue
+            else:
+                imgFile = os.path.join(imageDir,file)
+                self.images.append(imgFile)
+        print("find {} images".format(len(self.images)))
+        #self.parse_label(imageDir, labelFile)
+        self.parse_label_2(imageDir, labelFile)
+
 
     def next_image(self):
         self.counter += 1
@@ -212,7 +240,7 @@ class ImageDisplay(tk.Frame):
         shutil.copy2(imgFile,imgDst)
         print("copy image {} to yolo".format(imgDst))
         if len(annotation) > 0:
-            classIndex = ['door','door handle','human body','electric wall outlet','type B socket hole']
+            classIndex = ['door','door handle','human body','electric wall outlet','type b socket hole']
             img = cv2.imread(imgDst)
             H,W,C = img.shape
             filename,ext = os.path.splitext(basename)
