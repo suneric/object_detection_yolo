@@ -137,6 +137,28 @@ class ImageDisplay(tk.Frame):
         photo = ImageTk.PhotoImage(img)
         return photo
 
+    def parse_label_3(self, imageDir, labelFile):
+        self.labels = {}
+        with open(labelFile) as f:
+            jdata = json.load(f)
+            imgIds = jdata["_via_image_id_list"]
+            for id in imgIds:
+                img = jdata["_via_img_metadata"][id]
+                filename = img["filename"]
+                if not os.path.exists(os.path.join(imageDir, filename)):
+                    print(filename, "does not exist")
+                    continue
+                regions = img['regions']
+                boxes = []
+                for r in regions:
+                    box = r['shape_attributes']
+                    label = 'missing'
+                    if len(r['region_attributes']) > 0:
+                        label = r['region_attributes']['class'].lower()
+                    boxes.append((label,box["x"],box["y"],box["x"]+box["width"],box["y"]+box["height"]))
+                self.labels[filename] = boxes
+            print("find {} labels".format(len(self.labels)))
+
     # olatz
     def parse_label_2(self, imageDir, labelFile):
         self.labels = {}
@@ -196,6 +218,7 @@ class ImageDisplay(tk.Frame):
         print("find {} images".format(len(self.images)))
         #self.parse_label(imageDir, labelFile)
         self.parse_label_2(imageDir, labelFile)
+        #self.parse_label_3(imageDir, labelFile)
 
 
     def next_image(self):
